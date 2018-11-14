@@ -13,7 +13,7 @@ constexpr const char *TABLE_FILENAME_PREFIX = "/mnt/c/Data/C4TABLE-";
 
 // As in chess, white plays first.
 enum class Player { WHITE, BLACK };
-enum class Result { WIN, LOSS, DRAW, UNKNOWN };
+enum class Evaluation { WIN, LOSS, DRAW, UNKNOWN };
 
 constexpr Player other(Player p) {
     switch (p) {

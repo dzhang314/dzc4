@@ -79,11 +79,11 @@ namespace dzc4 {
             off_t start = 0, stop = num_entries - 1;
             while (true) {
                 if (start > stop) {
-                    const int newres = pos.fulleval<player, DEPTH + 1>();
-                    if (newres == INT_MIN) {
+                    const int score = pos.score<player, DEPTH + 1>();
+                    if (score == INT_MIN) {
                         std::cerr << "Error: inconclusive search" << std::endl;
                         std::exit(EXIT_FAILURE);
-                    } else return newres;
+                    } else return score;
                 }
                 const off_t mid = start + (stop - start) / 2;
                 const CompressedPosition64 midpos = getpos(mid);

@@ -52,8 +52,13 @@ namespace dzc4 {
                                        std::uint64_t black) :
             white(white), black(black) {}
 
-        constexpr BitBoard64 fullboard() const { return BitBoard64(white.data | black.data); }
-        constexpr operator bool() const { return static_cast<bool>(white.data | black.data); }
+        constexpr BitBoard64 fullboard() const {
+            return BitBoard64(white.data | black.data);
+        }
+
+        constexpr operator bool() const {
+            return static_cast<bool>(white.data | black.data);
+        }
 
         template <Player player>
         constexpr std::uint64_t won() const {
@@ -62,47 +67,49 @@ namespace dzc4 {
         }
 
         template <Player player, unsigned depth>
-        int fulleval() const {
+        Evaluation eval() const {
+            if (won<player>())        return Evaluation::WIN;
+            if (won<other(player)>()) return Evaluation::LOSS;
+            if constexpr (depth == 0) return Evaluation::UNKNOWN;
+            else {
+                bool hasMove = false, hasUnknown = false, hasDraw = false;
+                for (unsigned col = 0; col < NUM_COLS; ++col) {
+                    if (const Position128 pos = move<player>(col)) {
+                        hasMove = true;
+                        const Evaluation r = pos.eval<other(player),
+                                                      depth - 1>();
+                        if (r == Evaluation::LOSS   ) return Evaluation::WIN;
+                        if (r == Evaluation::UNKNOWN) hasUnknown = true;
+                        if (r == Evaluation::DRAW   ) hasDraw = true;
+                    }
+                }
+                return hasUnknown          ? Evaluation::UNKNOWN :
+                       hasDraw || !hasMove ? Evaluation::DRAW    :
+                                             Evaluation::LOSS;
+            }
+        }
+
+        template <Player player, unsigned depth>
+        int score() const {
             if (won<other(player)>()) return -1;
             if constexpr (depth == 0) return INT_MIN;
             else {
                 int neg = INT_MIN, pos = 0;
                 bool hasUnknown = false, hasDraw = false;
                 for (unsigned col = 0; col < NUM_COLS; ++col) {
-                    if (const Position128 newpos = move<player>(col)) {
-                        const int score = newpos.fulleval<other(player), depth - 1>();
-                        if      (score == -1)      return +1;
-                        else if (score == INT_MIN) hasUnknown = true;
-                        else if (score < 0)        neg = std::max(neg, score);
-                        else if (score > 0)        pos = std::max(pos, score);
-                        else                       hasDraw = true;
+                    if (const Position128 posn = move<player>(col)) {
+                        const int s = posn.score<other(player), depth - 1>();
+                        if      (s == -1)      return +1;
+                        else if (s == INT_MIN) hasUnknown = true;
+                        else if (s < 0)        neg = std::max(neg, s);
+                        else if (s > 0)        pos = std::max(pos, s);
+                        else                   hasDraw = true;
                     }
                 }
                 return neg > INT_MIN ? 1 - neg  :
                        hasUnknown    ? INT_MIN  :
                        hasDraw       ? 0        :
                        pos > 0       ? -pos - 1 : 0;
-            }
-        }
-
-        template <Player player, unsigned depth>
-        Result eval() const {
-            if (won<player>())        return Result::WIN;
-            if (won<other(player)>()) return Result::LOSS;
-            if constexpr (depth == 0) return Result::UNKNOWN;
-            else {
-                bool hasMove = false, hasUnknown = false, hasDraw = false;
-                for (unsigned col = 0; col < NUM_COLS; ++col) {
-                    if (const Position128 pos = move<player>(col)) {
-                        hasMove = true;
-                        const Result res = pos.eval<other(player), depth - 1>();
-                        if (res == Result::LOSS)    return Result::WIN;
-                        if (res == Result::UNKNOWN) hasUnknown = true;
-                        if (res == Result::DRAW)    hasDraw = true;
-                    }
-                }
-                return hasUnknown          ? Result::UNKNOWN :
-                       hasDraw || !hasMove ? Result::DRAW    : Result::LOSS;
             }
         }
 

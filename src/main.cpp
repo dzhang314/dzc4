@@ -93,7 +93,7 @@ void chunkstep(unsigned ply) {
         while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
             for (unsigned col = 0; col < NUM_COLS; ++col) {
                 if (const dzc4::Position128 newpos = pos.decompress().move<Player::WHITE>(col)) {
-                    if (newpos.eval<Player::BLACK, DEPTH>() == Result::UNKNOWN) {
+                    if (newpos.eval<Player::BLACK, DEPTH>() == Evaluation::UNKNOWN) {
                         posns.push_back(newpos.compressed_data());
                     }
                 }
@@ -107,7 +107,7 @@ void chunkstep(unsigned ply) {
         while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
             for (unsigned col = 0; col < NUM_COLS; ++col) {
                 if (const dzc4::Position128 newpos = pos.decompress().move<Player::BLACK>(col)) {
-                    if (newpos.eval<Player::WHITE, DEPTH>() == Result::UNKNOWN) {
+                    if (newpos.eval<Player::WHITE, DEPTH>() == Evaluation::UNKNOWN) {
                         posns.push_back(newpos.compressed_data());
                     }
                 }
@@ -235,7 +235,7 @@ void endstep() {
         if (ply % 2 == 0) {
             while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
                 const signed char result = static_cast<signed char>(
-                        pos.decompress().fulleval<Player::WHITE, DEPTH + 1>());
+                        pos.decompress().score<Player::WHITE, DEPTH + 1>());
                 auto res_ptr = static_cast<const char *>(
                         static_cast<const void *>(&result));
                 resfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64));
@@ -248,7 +248,7 @@ void endstep() {
         } else {
             while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
                 const signed char result = static_cast<signed char>(
-                        pos.decompress().fulleval<Player::BLACK, DEPTH + 1>());
+                        pos.decompress().score<Player::BLACK, DEPTH + 1>());
                 auto res_ptr = static_cast<const char *>(
                         static_cast<const void *>(&result));
                 resfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64));
