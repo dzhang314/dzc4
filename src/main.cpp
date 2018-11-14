@@ -312,11 +312,9 @@ void backstep(unsigned ply) {
 
 int main() {
 
-    // zerostep();
+    zerostep();
 
-    mergestep(25);
-
-    for (unsigned ply = 25; ply < NUM_ROWS * NUM_COLS - DEPTH; ++ply) {
+    for (unsigned ply = 0; ply < NUM_ROWS * NUM_COLS - DEPTH; ++ply) {
         chunkstep(ply);
         mergestep(ply + 1);
     }

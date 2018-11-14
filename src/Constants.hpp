@@ -1,13 +1,15 @@
 #ifndef DZC4_CONSTANTS_HPP_INCLUDED
 #define DZC4_CONSTANTS_HPP_INCLUDED
 
-#define NUM_COLS 7
-#define NUM_ROWS 6
-#define DEPTH    2
+#include <cstddef> // for std::size_t
 
-#define CHUNK_SIZE            10000000
-#define DATA_FILENAME_PREFIX  "/mnt/h/C4DATA-"
-#define TABLE_FILENAME_PREFIX "/mnt/h/C4TABLE-"
+constexpr unsigned NUM_COLS = 6;
+constexpr unsigned NUM_ROWS = 4;
+constexpr unsigned DEPTH = 2;
+constexpr std::size_t CHUNK_SIZE = 10000000;
+
+constexpr const char *DATA_FILENAME_PREFIX = "/mnt/c/Data/C4DATA-";
+constexpr const char *TABLE_FILENAME_PREFIX = "/mnt/c/Data/C4TABLE-";
 
 // As in chess, white plays first.
 enum class Player { WHITE, BLACK };
