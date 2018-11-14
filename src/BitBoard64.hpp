@@ -44,11 +44,11 @@ namespace dzc4 {
     public: // =================================================== STATE TESTING
 
         constexpr std::uint64_t won() const {
-            const std::uint64_t check_1 = data    & (data    >> 1 );
-            const std::uint64_t check_7 = data    & (data    >> 7 );
-            const std::uint64_t check_8 = data    & (data    >> 8 );
-            const std::uint64_t check_9 = data    & (data    >> 9 );
-            const std::uint64_t match_1 = check_1 & (check_1 >> 2 );
+            const std::uint64_t check_1 = data    & (data    >>  1);
+            const std::uint64_t check_7 = data    & (data    >>  7);
+            const std::uint64_t check_8 = data    & (data    >>  8);
+            const std::uint64_t check_9 = data    & (data    >>  9);
+            const std::uint64_t match_1 = check_1 & (check_1 >>  2);
             const std::uint64_t match_7 = check_7 & (check_7 >> 14);
             const std::uint64_t match_8 = check_8 & (check_8 >> 16);
             const std::uint64_t match_9 = check_9 & (check_9 >> 18);
@@ -59,7 +59,7 @@ namespace dzc4 {
         // comes from a C intrinsic header and is not marked constexpr.
         unsigned height(unsigned col) const {
             constexpr std::uint64_t mask = 0xFF;
-            const std::uint64_t x = data & mask << (8 * col);
+            const std::uint64_t x = data & (mask << (8 * col));
             return 7 - static_cast<unsigned>(_lzcnt_u64(x) - 1) % 8;
         }
 
