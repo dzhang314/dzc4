@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <sstream> // for std::ostringstream
 #include <string>
+#include <utility> // for std::pair
+#include <vector>
 
 // Project-specific headers
 #include "Constants.hpp"
@@ -48,7 +50,32 @@ inline std::string chunkfilename(unsigned ply, unsigned chunk) {
     return filename.str();
 }
 
+
+
 namespace dzc4 {
+
+    template <typename T>
+    constexpr char *char_ptr_to(T &obj) {
+        return static_cast<char *>(static_cast<void *>(std::addressof(obj)));
+    }
+
+    template <typename T>
+    constexpr char *char_ptr_to(T *ptr) {
+        return static_cast<char *>(static_cast<void *>(ptr));
+    }
+
+    template <typename T>
+    constexpr const char *char_ptr_to(const T &obj) {
+        return static_cast<const char *>(static_cast<const void *>(
+            std::addressof(obj)));
+    }
+
+    template <typename T>
+    constexpr const char *char_ptr_to(const T *ptr) {
+        return static_cast<const char *>(static_cast<const void *>(ptr));
+    }
+
+
 
     [[noreturn]] void error_exit() {
         std::cerr << std::endl;
@@ -88,8 +115,8 @@ namespace dzc4 {
 
     public: // ===================================================== CONSTRUCTOR
 
-        explicit DataFileWriter(unsigned ply) : data_path(plyfilename(ply)),
-                                                data_stream() {
+        explicit DataFileWriter(const std::string &path_str) {
+            data_path = path_str;
             assert_nonexistence(data_path);
             data_stream.open(data_path, std::ios::binary | std::ios::out
                                                          | std::ios::trunc);
@@ -97,17 +124,71 @@ namespace dzc4 {
                     "ERROR: Failed to create data file ", data_path, ".");
         }
 
+        explicit DataFileWriter(unsigned ply) :
+                DataFileWriter(plyfilename(ply)) {}
+
+        explicit DataFileWriter(unsigned ply, unsigned chunk) :
+                DataFileWriter(chunkfilename(ply, chunk)) {}
+
     public: // ======================================= STREAM INSERTION OPERATOR
 
-        DataFileWriter &operator<<(CompressedPosition64 pos) {
-            const char *pos_ptr = char_ptr_to(pos);
-            data_stream.write(pos_ptr, sizeof(CompressedPosition64));
+        DataFileWriter &operator<<(CompressedPosition64 posn) {
+            const char *posn_ptr = char_ptr_to(posn);
+            data_stream.write(posn_ptr, sizeof(CompressedPosition64));
+            exit_if(data_stream.fail(),
+                    "ERROR: Failed to write to data file ", data_path, ".");
+            return *this;
+        }
+
+        DataFileWriter &operator<<(
+                const std::vector<CompressedPosition64> &posns) {
+            const char * posns_ptr = char_ptr_to(posns.data());
+            data_stream.write(posns_ptr,
+                              posns.size() * sizeof(CompressedPosition64));
             exit_if(data_stream.fail(),
                     "ERROR: Failed to write to data file ", data_path, ".");
             return *this;
         }
 
     }; // class DataFileWriter
+
+
+
+    class TableFileWriter {
+
+    private: // =============================================== MEMBER VARIABLES
+
+        std::filesystem::path table_path;
+        std::ofstream table_stream;
+
+    public: // ===================================================== CONSTRUCTOR
+
+        explicit TableFileWriter(const std::string &path_str) {
+            table_path = path_str;
+            assert_nonexistence(table_path);
+            table_stream.open(table_path, std::ios::binary | std::ios::out
+                                                           | std::ios::trunc);
+            exit_if(table_stream.fail(),
+                    "ERROR: Failed to create table file ", table_path, ".");
+        }
+
+        explicit TableFileWriter(unsigned ply) :
+                TableFileWriter(tabfilename(ply)) {}
+
+    public: // ======================================= STREAM INSERTION OPERATOR
+
+        TableFileWriter &write(CompressedPosition64 posn, int score) {
+            const char *posn_ptr = char_ptr_to(posn);
+            const signed char score_char = static_cast<signed char>(score);
+            const char *score_ptr = char_ptr_to(score_char);
+            table_stream.write(posn_ptr, sizeof(CompressedPosition64));
+            table_stream.write(score_ptr, 1);
+            exit_if(table_stream.fail(),
+                    "ERROR: Failed to write to table file ", table_path, ".");
+            return *this;
+        }
+
+    }; // class TableFileWriter
 
 
 
@@ -121,8 +202,8 @@ namespace dzc4 {
 
     public: // ===================================================== CONSTRUCTOR
 
-        explicit DataFileReader(const std::string &path_str) :
-                data_path(path_str), data_stream() {
+        explicit DataFileReader(const std::string &path_str) {
+            data_path = path_str;
             assert_file_exists(data_path);
             data_size = std::filesystem::file_size(data_path);
             exit_if(data_size % sizeof(CompressedPosition64) != 0,
@@ -150,9 +231,9 @@ namespace dzc4 {
 
     public: // ======================================= STREAM INSERTION OPERATOR
 
-        DataFileReader &operator>>(CompressedPosition64 &pos) {
-            char *pos_ptr = char_ptr_to(pos);
-            data_stream.read(pos_ptr, sizeof(CompressedPosition64));
+        DataFileReader &operator>>(CompressedPosition64 &posn) {
+            char *posn_ptr = char_ptr_to(posn);
+            data_stream.read(posn_ptr, sizeof(CompressedPosition64));
             return *this;
         }
 

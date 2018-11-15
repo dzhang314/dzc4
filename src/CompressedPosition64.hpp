@@ -20,8 +20,8 @@ namespace dzc4 {
         explicit constexpr CompressedPosition64() : data(0x0101010101010101) {}
         explicit constexpr CompressedPosition64(std::uint64_t c) : data(c) {}
 
-        explicit CompressedPosition64(dzc4::Position128 pos) :
-            data(pos.compressed_data()) {}
+        explicit CompressedPosition64(dzc4::Position128 posn) :
+                data(posn.compressed_data()) {}
 
         constexpr bool operator==(CompressedPosition64 rhs) const { return data == rhs.data; }
         constexpr bool operator!=(CompressedPosition64 rhs) const { return data != rhs.data; }
@@ -55,8 +55,8 @@ namespace dzc4 {
         }
 
         friend std::ostream &operator<<(std::ostream &os,
-                                        CompressedPosition64 pos) {
-            return os << pos.decompress();
+                                        CompressedPosition64 posn) {
+            return os << posn.decompress();
         }
 
     }; // struct CompressedPosition64

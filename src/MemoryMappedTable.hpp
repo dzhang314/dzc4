@@ -50,7 +50,12 @@ namespace dzc4 {
                 std::exit(EXIT_FAILURE);
             }
             data = static_cast<char *>(mmap(
-                nullptr, size, PROT_READ, MAP_SHARED, fd, 0));
+                nullptr, size, PROT_READ, MAP_SHARED, fd, 0));\
+            if (data == MAP_FAILED) {
+                std::cerr << "Error occurred while memory-mapping table file "
+                          << fname << "." << std::endl;
+                std::exit(EXIT_FAILURE);
+            }
         }
 
         explicit MemoryMappedTable(const std::string &fname) :
@@ -78,22 +83,22 @@ namespace dzc4 {
         }
 
         template <Player player>
-        int find(Position128 pos) {
-            const std::uint64_t comp = pos.compressed_data();
+        int find(Position128 posn) {
+            const std::uint64_t comp = posn.compressed_data();
             off_t start = 0, stop = num_entries - 1;
             while (true) {
                 if (start > stop) {
-                    const int score = pos.score<player, DEPTH + 1>();
+                    const int score = posn.score<player, DEPTH + 1>();
                     if (score == INT_MIN) {
                         std::cerr << "Error: inconclusive search" << std::endl;
                         std::exit(EXIT_FAILURE);
                     } else return score;
                 }
                 const off_t mid = start + (stop - start) / 2;
-                const CompressedPosition64 midpos = getpos(mid);
-                if      (midpos.data == comp) return getres(mid);
-                else if (midpos.data > comp)  stop = mid - 1;
-                else                          start = mid + 1;
+                const CompressedPosition64 midposn = getpos(mid);
+                if      (midposn.data == comp) return getres(mid);
+                else if (midposn.data > comp)  stop = mid - 1;
+                else                           start = mid + 1;
             }
         }
 

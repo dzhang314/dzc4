@@ -78,10 +78,10 @@ namespace dzc4 {
             else {
                 bool hasMove = false, hasUnknown = false, hasDraw = false;
                 for (unsigned col = 0; col < NUM_COLS; ++col) {
-                    if (const Position128 pos = move<player>(col)) {
+                    if (const Position128 posn = move<player>(col)) {
                         hasMove = true;
-                        const Evaluation ev = pos.eval<other(player),
-                                                       depth - 1>();
+                        const Evaluation ev = posn.eval<other(player),
+                                                        depth - 1>();
                         if (ev == Evaluation::LOSS   ) return Evaluation::WIN;
                         if (ev == Evaluation::UNKNOWN) hasUnknown = true;
                         if (ev == Evaluation::DRAW   ) hasDraw = true;
@@ -148,13 +148,13 @@ namespace dzc4 {
 
     public: // ================================================== PRINT OPERATOR
 
-        friend std::ostream &operator<<(std::ostream &os, Position128 pos) {
+        friend std::ostream &operator<<(std::ostream &os, Position128 posn) {
             constexpr std::uint64_t bit = 1;
-            for (unsigned j = 8; j > 0; --j) {
+            for (unsigned j = NUM_ROWS; j > 0; --j) {
                 for (unsigned i = 0; i < 8; ++i) {
                     const std::uint64_t newbit = bit << (8 * i + j - 1);
-                    os << ((pos.white.data & newbit) ? 'W' :
-                           (pos.black.data & newbit) ? 'B' : 'O');
+                    os << ((posn.white.data & newbit) ? 'W' :
+                           (posn.black.data & newbit) ? 'B' : 'O');
                 }
                 os << '\n';
             }

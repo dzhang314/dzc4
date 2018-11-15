@@ -10,54 +10,36 @@
 #include "Position128.hpp"
 #include "MemoryMappedTable.hpp"
 
-void zerostep() { dzc4::DataFileWriter(0) << dzc4::CompressedPosition64(); }
-
-void writechunk(std::vector<std::uint64_t> &v,
+void writechunk(std::vector<dzc4::CompressedPosition64> &posns,
                 unsigned ply, unsigned chunk) {
-    std::sort(v.begin(), v.end());
-    v.erase(std::unique(v.begin(), v.end()), v.end());
-    const std::string filename = chunkfilename(ply, chunk);
-    std::ofstream chunk_file(filename, std::ios::binary);
-    if (chunk_file) {
-        std::cout << "Writing chunk file " << filename << "." << std::endl;
-        auto v_ptr = char_ptr_to(v.data());
-        chunk_file.write(v_ptr, v.size() * sizeof(std::uint64_t));
-        if (chunk_file) {
-            std::cout << "Successfully wrote chunk file "
-                      << filename << "." << std::endl;
-            v.clear();
-        } else {
-            std::cout << "Could not write to chunk file "
-                      << filename << "." << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-    } else {
-        std::cout << "Could not open chunk file "
-                  << filename << "." << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
+    std::sort(posns.begin(), posns.end());
+    posns.erase(std::unique(posns.begin(), posns.end()), posns.end());
+    dzc4::DataFileWriter(ply, chunk) << posns;
+    posns.clear();
 }
 
 void chunkstep(unsigned ply) {
     dzc4::DataFileReader reader(ply);
-    dzc4::CompressedPosition64 pos;
-    std::vector<std::uint64_t> posns;
+    dzc4::CompressedPosition64 posn;
+    std::vector<dzc4::CompressedPosition64> posns;
     unsigned long long int count = 0;
     unsigned chunk = 0;
-    while (reader >> pos) {
+    while (reader >> posn) {
         for (unsigned col = 0; col < NUM_COLS; ++col) {
             if (ply % 2 == 0) {
-                if (const dzc4::Position128 newpos =
-                        pos.decompress().move<Player::WHITE>(col)) {
-                    if (newpos.eval<Player::BLACK, DEPTH>() == Evaluation::UNKNOWN) {
-                        posns.push_back(newpos.compressed_data());
+                if (const dzc4::Position128 next_posn =
+                        posn.decompress().move<Player::WHITE>(col)) {
+                    if (next_posn.eval<Player::BLACK, DEPTH>() ==
+                            Evaluation::UNKNOWN) {
+                        posns.emplace_back(next_posn);
                     }
                 }
             } else {
-                if (const dzc4::Position128 newpos =
-                        pos.decompress().move<Player::BLACK>(col)) {
-                    if (newpos.eval<Player::WHITE, DEPTH>() == Evaluation::UNKNOWN) {
-                        posns.push_back(newpos.compressed_data());
+                if (const dzc4::Position128 next_posn =
+                        posn.decompress().move<Player::BLACK>(col)) {
+                    if (next_posn.eval<Player::WHITE, DEPTH>() ==
+                            Evaluation::UNKNOWN) {
+                        posns.emplace_back(next_posn);
                     }
                 }
             }
@@ -143,87 +125,51 @@ void mergestep(unsigned ply) {
 // ========================================================================== //
 
 void endstep() {
-    unsigned ply = NUM_ROWS * NUM_COLS - DEPTH;
-    const std::string plyname = plyfilename(ply);
-    const std::string resname = tabfilename(ply);
+    constexpr unsigned ply = NUM_ROWS * NUM_COLS - DEPTH;
     {
-        std::ifstream plyfile(plyname, std::ios::binary);
-        std::ofstream resfile(resname, std::ios::binary);
-        // TODO: Check and handle file opening errors.
-        dzc4::CompressedPosition64 pos;
-        auto pos_ptr = static_cast<char *>(static_cast<void *>(&pos));
+        dzc4::DataFileReader reader(ply);
+        dzc4::TableFileWriter writer(ply);
+        dzc4::CompressedPosition64 posn;
         unsigned long long int count = 0;
-        if (ply % 2 == 0) {
-            while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
-                const signed char result = static_cast<signed char>(
-                        pos.decompress().score<Player::WHITE, DEPTH + 1>());
-                auto res_ptr = static_cast<const char *>(
-                        static_cast<const void *>(&result));
-                resfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64));
-                resfile.write(res_ptr, sizeof(signed char));
-                if (++count % CHUNK_SIZE == 0) {
-                    std::cout << "Evaluated " << count
-                              << " positions." << std::endl;
-                }
-            }
-        } else {
-            while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
-                const signed char result = static_cast<signed char>(
-                        pos.decompress().score<Player::BLACK, DEPTH + 1>());
-                auto res_ptr = static_cast<const char *>(
-                        static_cast<const void *>(&result));
-                resfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64));
-                resfile.write(res_ptr, sizeof(signed char));
-                if (++count % CHUNK_SIZE == 0) {
-                    std::cout << "Evaluated " << count
-                              << " positions." << std::endl;
-                }
+        while (reader >> posn) {
+            const int score = ply % 2 == 0
+                    ? posn.decompress().score<Player::WHITE, DEPTH + 1>()
+                    : posn.decompress().score<Player::BLACK, DEPTH + 1>();
+            writer.write(posn, score);
+            if (++count % CHUNK_SIZE == 0) {
+                std::cout << "Evaluated " << count
+                            << " positions." << std::endl;
             }
         }
         std::cout << "Evaluated " << count << " positions." << std::endl;
     }
+    const std::string plyname = plyfilename(ply);
     std::remove(plyname.c_str());
 }
 
 void backstep(unsigned ply) {
     std::cout << "Back-propagating from ply " << ply
               << " to ply " << ply - 1 << "." << std::endl;
-    const std::string plyname = plyfilename(ply - 1);
-    const std::string resname = tabfilename(ply - 1);
-    const std::string tabname = tabfilename(ply);
     {
-        std::ifstream plyfile(plyname, std::ios::binary);
-        std::ofstream resfile(resname, std::ios::binary);
-        dzc4::MemoryMappedTable tabfile(tabname);
+        dzc4::DataFileReader reader(ply - 1);
+        dzc4::TableFileWriter writer(ply - 1);
+        dzc4::MemoryMappedTable tabfile(tabfilename(ply));
         // TODO: Check and handle file opening errors.
-        dzc4::CompressedPosition64 pos;
-        auto pos_ptr = static_cast<char *>(static_cast<void *>(&pos));
+        dzc4::CompressedPosition64 posn;
         unsigned long long int count = 0;
-        if (ply % 2 == 0) {
-            while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
-                const auto result = static_cast<signed char>(tabfile.eval<Player::BLACK>(pos));
-                auto res_ptr = static_cast<const char *>(static_cast<const void *>(&result));
-                resfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64));
-                resfile.write(res_ptr, sizeof(signed char));
-                if (++count % CHUNK_SIZE == 0) {
-                    std::cout << "Evaluated " << count
-                              << " positions." << std::endl;
-                }
-            }
-        } else {
-            while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
-                const auto result = static_cast<signed char>(tabfile.eval<Player::WHITE>(pos));
-                auto res_ptr = static_cast<const char *>(static_cast<const void *>(&result));
-                resfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64));
-                resfile.write(res_ptr, sizeof(signed char));
-                if (++count % CHUNK_SIZE == 0) {
-                    std::cout << "Evaluated " << count
-                              << " positions." << std::endl;
-                }
+        while (reader >> posn) {
+            const int score = ply % 2 == 0
+                ? tabfile.eval<Player::BLACK>(posn)
+                : tabfile.eval<Player::WHITE>(posn);
+            writer.write(posn, score);
+            if (++count % CHUNK_SIZE == 0) {
+                std::cout << "Evaluated " << count
+                            << " positions." << std::endl;
             }
         }
         std::cout << "Evaluated " << count << " positions." << std::endl;
     }
+    const std::string plyname = plyfilename(ply - 1);
     std::remove(plyname.c_str());
 }
 
@@ -233,7 +179,7 @@ void backstep(unsigned ply) {
 
 int main() {
 
-    zerostep();
+    dzc4::DataFileWriter(0) << dzc4::CompressedPosition64();
 
     for (unsigned ply = 0; ply < NUM_ROWS * NUM_COLS - DEPTH; ++ply) {
         chunkstep(ply);

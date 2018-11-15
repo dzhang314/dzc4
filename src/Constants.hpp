@@ -30,14 +30,4 @@ constexpr Player other(Player p) {
     }
 }
 
-template <typename T>
-constexpr char *char_ptr_to(T &obj) {
-    return static_cast<char *>(static_cast<void *>(std::addressof(obj)));
-}
-
-template <typename T>
-constexpr char *char_ptr_to(T *ptr) {
-    return static_cast<char *>(static_cast<void *>(ptr));
-}
-
 #endif // DZC4_CONSTANTS_HPP_INCLUDED
