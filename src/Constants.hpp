@@ -2,6 +2,8 @@
 #define DZC4_CONSTANTS_HPP_INCLUDED
 
 #include <cstddef> // for std::size_t
+#include <filesystem>
+#include <memory> // for std::addressof
 
 constexpr unsigned NUM_COLS = 6;
 constexpr unsigned NUM_ROWS = 4;

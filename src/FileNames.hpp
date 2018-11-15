@@ -3,6 +3,7 @@
 
 // C++ standard library headers
 #include <iomanip> // for std::setw and std::setfill
+#include <filesystem>
 #include <sstream> // for std::ostringstream
 #include <string>
 

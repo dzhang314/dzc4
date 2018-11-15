@@ -1,7 +1,7 @@
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <vector>
 
 #include "Constants.hpp"
@@ -10,19 +10,40 @@
 #include "Position128.hpp"
 #include "MemoryMappedTable.hpp"
 
+void assert_nonexistence(const std::filesystem::path &p) {
+    if (std::filesystem::exists(p)) {
+        std::cerr << "ERROR: " << p << " already exists.\n";
+        std::exit(EXIT_FAILURE);
+    }
+}
+
+void assert_file_exists(const std::filesystem::path &p) {
+    const auto stat = std::filesystem::status(p);
+    if (!std::filesystem::exists(stat)) {
+        std::cerr << "ERROR: " << p << " does not exist.\n";
+        std::exit(EXIT_FAILURE);
+    }
+    if (!std::filesystem::is_regular_file(stat)) {
+        std::cerr << "ERROR: " << p
+                  << " exists but is not a regular file.\n";
+        std::exit(EXIT_FAILURE);
+    }
+}
+
 void zerostep() {
-    const std::string filename = plyfilename(0);
-    std::ofstream plyfile(filename, std::ios::binary);
+    const std::filesystem::path filepath(plyfilename(0));
+    assert_nonexistence(filepath);
+    std::ofstream plyfile(filepath, std::ios::binary);
     if (!plyfile) {
         std::cout << "Could not open ply file "
-                  << filename << "." << std::endl;
+                  << filepath << "." << std::endl;
         std::exit(EXIT_FAILURE);
     }
     dzc4::CompressedPosition64 start_pos;
     const char *pos_ptr = char_ptr_to(start_pos);
     if (!plyfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
         std::cout << "Failed to write to ply file "
-                  << filename << "." << std::endl;
+                  << filepath << "." << std::endl;
         std::exit(EXIT_FAILURE);
     }
 }
