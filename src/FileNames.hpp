@@ -3,12 +3,15 @@
 
 // C++ standard library headers
 #include <iomanip> // for std::setw and std::setfill
+#include <ios>
+#include <iostream> // for std::ifstream, std::ofstream
 #include <filesystem>
 #include <sstream> // for std::ostringstream
 #include <string>
 
 // Project-specific headers
 #include "Constants.hpp"
+#include "CompressedPosition64.hpp"
 
 inline std::string plyfilename(unsigned ply) {
     std::ostringstream filename;
