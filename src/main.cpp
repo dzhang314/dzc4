@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "Constants.hpp"
@@ -18,8 +19,7 @@ void zerostep() {
         std::exit(EXIT_FAILURE);
     }
     dzc4::CompressedPosition64 start_pos;
-    auto pos_ptr = static_cast<const char *>(
-            static_cast<const void *>(&start_pos));
+    const char *pos_ptr = char_ptr_to(start_pos);
     if (!plyfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
         std::cout << "Failed to write to ply file "
                   << filename << "." << std::endl;
@@ -62,7 +62,7 @@ void writechunk(std::vector<std::uint64_t> &v,
     std::ofstream chunk_file(filename, std::ios::binary);
     if (chunk_file) {
         std::cout << "Writing chunk file " << filename << "." << std::endl;
-        auto v_ptr = static_cast<const char *>(static_cast<void *>(v.data()));
+        auto v_ptr = char_ptr_to(v.data());
         chunk_file.write(v_ptr, v.size() * sizeof(std::uint64_t));
         if (chunk_file) {
             std::cout << "Successfully wrote chunk file "
@@ -85,7 +85,7 @@ void chunkstep(unsigned ply) {
     std::ifstream plyfile(filename, std::ios::binary);
     printinfo(plyfile, filename);
     dzc4::CompressedPosition64 pos;
-    auto pos_ptr = static_cast<char *>(static_cast<void *>(&pos));
+    char *pos_ptr = char_ptr_to(pos);
     std::vector<std::uint64_t> posns;
     unsigned long long int count = 0;
     unsigned chunk = 0;
@@ -132,7 +132,7 @@ void chunkstep(unsigned ply) {
 bool readnext(std::vector<std::ifstream> &chunkfiles,
               std::vector<std::uint64_t> &front,
               std::vector<std::ifstream>::size_type i) {
-    auto front_ptr = static_cast<char *>(static_cast<void *>(&front[i]));
+    auto front_ptr = char_ptr_to(front[i]);
     chunkfiles[i].read(front_ptr, sizeof(std::uint64_t));
     if (chunkfiles[i].eof()) {
         chunkfiles.erase(chunkfiles.begin() + i);
@@ -156,7 +156,7 @@ void merge(std::vector<std::ifstream> &chunkfiles,
         if (!readnext(chunkfiles, front, i)) { --i; }
     }
     std::uint64_t minpos;
-    auto minpos_ptr = static_cast<char *>(static_cast<void *>(&minpos));
+    char *minpos_ptr = char_ptr_to(minpos);
     while (!chunkfiles.empty()) {
         minpos = *std::min_element(front.begin(), front.end());
         if (!plyfile.write(minpos_ptr, sizeof(std::uint64_t))) {

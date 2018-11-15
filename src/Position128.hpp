@@ -80,11 +80,11 @@ namespace dzc4 {
                 for (unsigned col = 0; col < NUM_COLS; ++col) {
                     if (const Position128 pos = move<player>(col)) {
                         hasMove = true;
-                        const Evaluation r = pos.eval<other(player),
-                                                      depth - 1>();
-                        if (r == Evaluation::LOSS   ) return Evaluation::WIN;
-                        if (r == Evaluation::UNKNOWN) hasUnknown = true;
-                        if (r == Evaluation::DRAW   ) hasDraw = true;
+                        const Evaluation ev = pos.eval<other(player),
+                                                       depth - 1>();
+                        if (ev == Evaluation::LOSS   ) return Evaluation::WIN;
+                        if (ev == Evaluation::UNKNOWN) hasUnknown = true;
+                        if (ev == Evaluation::DRAW   ) hasDraw = true;
                     }
                 }
                 return hasUnknown          ? Evaluation::UNKNOWN :
@@ -102,12 +102,12 @@ namespace dzc4 {
                 bool hasUnknown = false, hasDraw = false;
                 for (unsigned col = 0; col < NUM_COLS; ++col) {
                     if (const Position128 posn = move<player>(col)) {
-                        const int s = posn.score<other(player), depth - 1>();
-                        if      (s == -1)      return +1;
-                        else if (s == INT_MIN) hasUnknown = true;
-                        else if (s < 0)        neg = std::max(neg, s);
-                        else if (s > 0)        pos = std::max(pos, s);
-                        else                   hasDraw = true;
+                        const int sc = posn.score<other(player), depth - 1>();
+                        if      (sc == -1)      return +1;
+                        else if (sc == INT_MIN) hasUnknown = true;
+                        else if (sc < 0)        neg = std::max(neg, sc);
+                        else if (sc > 0)        pos = std::max(pos, sc);
+                        else                    hasDraw = true;
                     }
                 }
                 return neg > INT_MIN ? 1 - neg  :

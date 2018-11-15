@@ -5,6 +5,12 @@
 
 constexpr unsigned NUM_COLS = 6;
 constexpr unsigned NUM_ROWS = 4;
+
+static_assert(NUM_COLS <= 8, "dzc4 only supports Connect Four boards with "
+                             "up to eight columns.");
+static_assert(NUM_ROWS <= 7, "dzc4 only supports Connect Four boards with "
+                             "up to seven rows.");
+
 constexpr unsigned DEPTH = 2;
 constexpr std::size_t CHUNK_SIZE = 10000000;
 
@@ -20,6 +26,16 @@ constexpr Player other(Player p) {
         case Player::WHITE: return Player::BLACK;
         case Player::BLACK: return Player::WHITE;
     }
+}
+
+template <typename T>
+constexpr char *char_ptr_to(T &obj) {
+    return static_cast<char *>(static_cast<void *>(std::addressof(obj)));
+}
+
+template <typename T>
+constexpr char *char_ptr_to(T *ptr) {
+    return static_cast<char *>(static_cast<void *>(ptr));
 }
 
 #endif // DZC4_CONSTANTS_HPP_INCLUDED

@@ -32,7 +32,7 @@ namespace dzc4 {
         std::uint64_t bitmask() const {
             constexpr std::uint64_t bit = 1;
             std::uint64_t mask = (bit << offset(0)) - 1;
-            mask |= ((bit << offset(1)) - 1) << 8;
+            mask |= ((bit << offset(1)) - 1) <<  8;
             mask |= ((bit << offset(2)) - 1) << 16;
             mask |= ((bit << offset(3)) - 1) << 24;
             mask |= ((bit << offset(4)) - 1) << 32;
