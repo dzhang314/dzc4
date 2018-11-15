@@ -63,7 +63,7 @@ bool readnext(std::vector<dzc4::DataFileReader> &chunk_readers,
         front_buffer.erase(front_buffer.begin() + index);
         return false;
     } else if (chunk_readers[index]) return true;
-    else exit_if(true, "Error occurred when reading from chunk file.");
+    else dzc4::exit_if(true, "Error occurred when reading from chunk file.");
 }
 
 void merge(std::vector<dzc4::DataFileReader> &chunkfiles,
