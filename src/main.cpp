@@ -22,6 +22,7 @@ using dzc4::Player, dzc4::Evaluation;
 
 void chunkstep(unsigned ply) {
     dzc4::DataFileReader reader(ply);
+    double total = reader.size();
     dzc4::CompressedPosition64 posn;
     std::vector<dzc4::CompressedPosition64> posns;
     unsigned long long int count = 0;
@@ -38,12 +39,14 @@ void chunkstep(unsigned ply) {
             }
         }
         if (++count % CHUNK_SIZE == 0) {
-            std::cout << "Expanded " << count << " positions." << std::endl;
+            std::cout << "Expanded " << count << " positions ("
+                      << 100 * (count / total) << "%)." << std::endl;
             writechunk(posns, ply + 1, chunk++);
         }
     }
     if (!posns.empty()) {
-        std::cout << "Expanded " << count << " positions." << std::endl;
+        std::cout << "Expanded " << count << " positions ("
+                  << 100 * (count / total) << "%)." << std::endl;
         writechunk(posns, ply + 1, chunk);
     }
 }
@@ -57,13 +60,13 @@ bool readnext(std::vector<dzc4::DataFileReader> &chunk_readers,
               std::size_t index) {
     chunk_readers[index] >> front_buffer[index];
     if (chunk_readers[index].eof()) {
-        std::cout << "Closed chunk file" << chunk_readers[index].get_path()
-                  << "." << std::endl;
+        std::cout << "Closed chunk file " << chunk_readers[index].path();
         chunk_readers.erase(chunk_readers.begin() + index);
         front_buffer.erase(front_buffer.begin() + index);
+        std::cout << " (" << chunk_readers.size() << " left)." << std::endl;
         return false;
     } else if (chunk_readers[index]) return true;
-    else dzc4::exit_if(true, "Error occurred when reading from chunk file.");
+    else dzc4::error_exit("Error occurred when reading from chunk file.");
 }
 
 void merge(std::vector<dzc4::DataFileReader> &chunkfiles,
@@ -115,6 +118,7 @@ void endstep() {
     constexpr unsigned ply = NUM_ROWS * NUM_COLS - DEPTH;
     {
         dzc4::DataFileReader reader(ply);
+        double total = reader.size();
         dzc4::TableFileWriter writer(ply);
         dzc4::CompressedPosition64 posn;
         unsigned long long int count = 0;
@@ -124,11 +128,12 @@ void endstep() {
                     : posn.decompress().score<Player::BLACK, DEPTH + 1>();
             writer.write(posn, score);
             if (++count % CHUNK_SIZE == 0) {
-                std::cout << "Evaluated " << count
-                            << " positions." << std::endl;
+                std::cout << "Evaluated " << count << " positions ("
+                          << 100 * (count / total) << "%)." << std::endl;
             }
         }
-        std::cout << "Evaluated " << count << " positions." << std::endl;
+        std::cout << "Evaluated " << count << " positions ("
+                  << 100 * (count / total) << "%)." << std::endl;
     }
     const std::string plyname = plyfilename(ply);
     std::remove(plyname.c_str());
@@ -139,6 +144,7 @@ void backstep(unsigned ply) {
               << " to ply " << ply - 1 << "." << std::endl;
     {
         dzc4::DataFileReader reader(ply - 1);
+        double total = reader.size();
         dzc4::TableFileWriter writer(ply - 1);
         dzc4::MemoryMappedTable tabfile(tabfilename(ply));
         // TODO: Check and handle file opening errors.
@@ -150,11 +156,12 @@ void backstep(unsigned ply) {
                 : tabfile.eval<Player::WHITE>(posn);
             writer.write(posn, score);
             if (++count % CHUNK_SIZE == 0) {
-                std::cout << "Evaluated " << count
-                            << " positions." << std::endl;
+                std::cout << "Evaluated " << count << " positions ("
+                          << 100 * (count / total) << "%)." << std::endl;
             }
         }
-        std::cout << "Evaluated " << count << " positions." << std::endl;
+        std::cout << "Evaluated " << count << " positions ("
+                  << 100 * (count / total) << "%)." << std::endl;
     }
     const std::string plyname = plyfilename(ply - 1);
     std::remove(plyname.c_str());

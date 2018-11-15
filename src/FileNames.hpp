@@ -191,7 +191,9 @@ namespace dzc4 {
 
         bool eof() const { return data_stream.eof(); }
 
-        const std::filesystem::path &get_path() const { return data_path; }
+        const std::filesystem::path &path() const { return data_path; }
+
+        std::uintmax_t size() const { return data_size; }
 
     public: // ======================================= STREAM INSERTION OPERATOR
 
