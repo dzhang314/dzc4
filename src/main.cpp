@@ -18,6 +18,8 @@ void writechunk(std::vector<dzc4::CompressedPosition64> &posns,
     posns.clear();
 }
 
+using dzc4::Player, dzc4::Evaluation;
+
 void chunkstep(unsigned ply) {
     dzc4::DataFileReader reader(ply);
     dzc4::CompressedPosition64 posn;
@@ -26,22 +28,13 @@ void chunkstep(unsigned ply) {
     unsigned chunk = 0;
     while (reader >> posn) {
         for (unsigned col = 0; col < NUM_COLS; ++col) {
-            if (ply % 2 == 0) {
-                if (const dzc4::Position128 next_posn =
-                        posn.decompress().move<Player::WHITE>(col)) {
-                    if (next_posn.eval<Player::BLACK, DEPTH>() ==
-                            Evaluation::UNKNOWN) {
-                        posns.emplace_back(next_posn);
-                    }
-                }
-            } else {
-                if (const dzc4::Position128 next_posn =
-                        posn.decompress().move<Player::BLACK>(col)) {
-                    if (next_posn.eval<Player::WHITE, DEPTH>() ==
-                            Evaluation::UNKNOWN) {
-                        posns.emplace_back(next_posn);
-                    }
-                }
+            if (const dzc4::Position128 next_posn = ply % 2 == 0
+                    ? posn.decompress().move<Player::WHITE>(col)
+                    : posn.decompress().move<Player::BLACK>(col)) {
+                const Evaluation ev = ply % 2 == 0
+                    ? next_posn.eval<Player::BLACK, DEPTH>()
+                    : next_posn.eval<Player::WHITE, DEPTH>();
+                if (ev == Evaluation::UNKNOWN) posns.emplace_back(next_posn);
             }
         }
         if (++count % CHUNK_SIZE == 0) {

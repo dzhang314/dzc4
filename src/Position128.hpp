@@ -39,6 +39,17 @@
 
 namespace dzc4 {
 
+    // As in chess, white plays first.
+    enum class Player { WHITE, BLACK };
+    enum class Evaluation { WIN, LOSS, DRAW, UNKNOWN };
+
+    constexpr Player other(Player p) {
+        switch (p) {
+            case Player::WHITE: return Player::BLACK;
+            case Player::BLACK: return Player::WHITE;
+        }
+    }
+
     class Position128 {
 
     private: // =============================================== MEMBER VARIABLES

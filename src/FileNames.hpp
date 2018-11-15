@@ -8,11 +8,11 @@
 #include <filesystem>
 #include <sstream> // for std::ostringstream
 #include <string>
-#include <utility> // for std::pair
 #include <vector>
 
 // Project-specific headers
 #include "Constants.hpp"
+#include "Utilities.hpp"
 #include "CompressedPosition64.hpp"
 
 inline std::string plyfilename(unsigned ply) {
@@ -53,43 +53,6 @@ inline std::string chunkfilename(unsigned ply, unsigned chunk) {
 
 
 namespace dzc4 {
-
-    template <typename T>
-    constexpr char *char_ptr_to(T &obj) {
-        return static_cast<char *>(static_cast<void *>(std::addressof(obj)));
-    }
-
-    template <typename T>
-    constexpr char *char_ptr_to(T *ptr) {
-        return static_cast<char *>(static_cast<void *>(ptr));
-    }
-
-    template <typename T>
-    constexpr const char *char_ptr_to(const T &obj) {
-        return static_cast<const char *>(static_cast<const void *>(
-            std::addressof(obj)));
-    }
-
-    template <typename T>
-    constexpr const char *char_ptr_to(const T *ptr) {
-        return static_cast<const char *>(static_cast<const void *>(ptr));
-    }
-
-
-
-    [[noreturn]] void error_exit() {
-        std::cerr << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-
-    template <typename T, typename... Ts>
-    [[noreturn]] void error_exit(const T &msg, const Ts &... msgs) {
-        std::cerr << msg;
-        error_exit(msgs...);
-    }
-
-    template <typename... Ts>
-    void exit_if(bool b, const Ts &... msgs) { if (b) error_exit(msgs...); }
 
     void assert_nonexistence(const std::filesystem::path &p) {
         exit_if(std::filesystem::exists(p),
@@ -213,8 +176,7 @@ namespace dzc4 {
             exit_if(data_stream.fail(),
                     "ERROR: Failed to open data file ", data_path, ".");
             std::cout << "Successfully opened data file " << data_path
-                      << ". Found " << data_size / sizeof(CompressedPosition64)
-                      << " positions." << std::endl;
+                      << ". Found " << data_size << " positions." << std::endl;
         }
 
         explicit DataFileReader(unsigned ply) :
