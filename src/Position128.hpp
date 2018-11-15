@@ -13,6 +13,10 @@
 #include "BitBoard64.hpp"
 #include "Constants.hpp"
 
+// Position128 is an immutable 128-bit datatype that represents a complete
+// Connect Four game state. It consists of a pair of BitBoard64s, one for each
+// player's pieces.
+
 // a score of -1 indicates that the player to move has already lost
 //     (i.e., their opponent already has four pieces in a row).
 // a score of zero indicates a theoretically drawn game.

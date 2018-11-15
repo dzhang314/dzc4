@@ -7,9 +7,9 @@
 // x86 intrinsic headers
 #include <x86intrin.h> // for _lzcnt_u64
 
-// BitBoard64 is a 64-bit datatype that represents the configuration of one
-// player's pieces in a Connect Four board. Each bit represents a playable
-// space on a 7x8 Connect Four board, as follows:
+// BitBoard64 is an immutable 64-bit datatype that represents the configuration
+// of one player's pieces in a Connect Four board. Each bit represents a
+// playable space on a 7x8 Connect Four board as follows:
 
 //       X  X  X  X  X  X  X  X (MSB)  (All Connect Four boards in comments
 //       6 14 22 30 38 46 54 62         are drawn so that pieces are dropped
