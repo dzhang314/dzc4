@@ -191,6 +191,8 @@ namespace dzc4 {
 
         bool eof() const { return data_stream.eof(); }
 
+        const std::filesystem::path &get_path() const { return data_path; }
+
     public: // ======================================= STREAM INSERTION OPERATOR
 
         DataFileReader &operator>>(CompressedPosition64 &posn) {

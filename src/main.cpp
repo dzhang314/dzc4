@@ -57,31 +57,27 @@ bool readnext(std::vector<dzc4::DataFileReader> &chunk_readers,
               std::size_t index) {
     chunk_readers[index] >> front_buffer[index];
     if (chunk_readers[index].eof()) {
+        std::cout << "Closed chunk file" << chunk_readers[index].get_path()
+                  << "." << std::endl;
         chunk_readers.erase(chunk_readers.begin() + index);
         front_buffer.erase(front_buffer.begin() + index);
-        std::cout << "Closed chunk file." << std::endl;
         return false;
-    } else if (chunk_readers[index]) {
-        return true;
-    } else {
-        std::cout << "Error occurred when reading from chunk file."
-                  << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
+    } else if (chunk_readers[index]) return true;
+    else exit_if(true, "Error occurred when reading from chunk file.");
 }
 
 void merge(std::vector<dzc4::DataFileReader> &chunkfiles,
            dzc4::DataFileWriter &plyfile) {
     std::vector<dzc4::CompressedPosition64> front(chunkfiles.size());
     for (std::size_t i = 0; i < chunkfiles.size(); ++i) {
-        if (!readnext(chunkfiles, front, i)) { --i; }
+        if (!readnext(chunkfiles, front, i)) --i;
     }
     while (!chunkfiles.empty()) {
         const dzc4::CompressedPosition64 minpos =
             *std::min_element(front.begin(), front.end());
         plyfile << minpos;
         for (std::size_t i = 0; i < chunkfiles.size(); ++i) {
-            if (front[i] == minpos && !readnext(chunkfiles, front, i)) { --i; }
+            if (front[i] == minpos && !readnext(chunkfiles, front, i)) --i;
         }
     }
 }
@@ -103,8 +99,6 @@ void mergestep(unsigned ply) {
     for (unsigned chunk = 0; chunk < count; ++chunk) {
         chunkfiles.emplace_back(ply, chunk);
     }
-    std::cout << "Successfully opened " << count
-              << " chunk files." << std::endl;
     dzc4:: DataFileWriter writer(ply);
     merge(chunkfiles, writer);
     for (unsigned chunk = 0; chunk < count; ++chunk) {

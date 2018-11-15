@@ -82,6 +82,8 @@ namespace dzc4 {
             return static_cast<int>(*static_cast<signed char *>(data_ptr));
         }
 
+    private:
+
         template <Player player>
         int find(Position128 posn) {
             const std::uint64_t comp = posn.compressed_data();
@@ -101,6 +103,8 @@ namespace dzc4 {
                 else                           start = mid + 1;
             }
         }
+
+    public:
 
         template <Player player>
         int eval(CompressedPosition64 comp) {
