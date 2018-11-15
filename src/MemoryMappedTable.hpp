@@ -49,17 +49,21 @@ namespace dzc4 {
                           << fname << "." << std::endl;
                 std::exit(EXIT_FAILURE);
             }
-            data = static_cast<char *>(mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0));
+            data = static_cast<char *>(mmap(
+                nullptr, size, PROT_READ, MAP_SHARED, fd, 0));
         }
 
-        explicit MemoryMappedTable(const std::string &fname) : MemoryMappedTable(fname.c_str()) {}
+        explicit MemoryMappedTable(const std::string &fname) :
+                MemoryMappedTable(fname.c_str()) {}
 
         ~MemoryMappedTable() {
             if (munmap(data, size) == -1) {
-                std::cerr << "Warning: error occurred while unmapping table file." << std::endl;
+                std::cerr << "Warning: error occurred while "
+                             "unmapping table file." << std::endl;
             }
             if (close(fd) == -1) {
-                std::cerr << "Warning: error occurred while closing table file." << std::endl;
+                std::cerr << "Warning: error occurred while "
+                             "closing table file." << std::endl;
             }
         }
 

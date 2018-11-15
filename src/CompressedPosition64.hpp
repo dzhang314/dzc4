@@ -23,6 +23,13 @@ namespace dzc4 {
         explicit CompressedPosition64(dzc4::Position128 pos) :
             data(pos.compressed_data()) {}
 
+        constexpr bool operator==(CompressedPosition64 rhs) const { return data == rhs.data; }
+        constexpr bool operator!=(CompressedPosition64 rhs) const { return data != rhs.data; }
+        constexpr bool operator< (CompressedPosition64 rhs) const { return data <  rhs.data; }
+        constexpr bool operator> (CompressedPosition64 rhs) const { return data >  rhs.data; }
+        constexpr bool operator<=(CompressedPosition64 rhs) const { return data <= rhs.data; }
+        constexpr bool operator>=(CompressedPosition64 rhs) const { return data >= rhs.data; }
+
         unsigned offset(unsigned col) const  {
             constexpr std::uint64_t mask = 0xFF;
             const std::uint64_t x = data & mask << (8 * col);

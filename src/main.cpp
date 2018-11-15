@@ -10,70 +10,7 @@
 #include "Position128.hpp"
 #include "MemoryMappedTable.hpp"
 
-void assert_nonexistence(const std::filesystem::path &p) {
-    if (std::filesystem::exists(p)) {
-        std::cerr << "ERROR: " << p << " already exists.\n";
-        std::exit(EXIT_FAILURE);
-    }
-}
-
-void assert_file_exists(const std::filesystem::path &p) {
-    const auto stat = std::filesystem::status(p);
-    if (!std::filesystem::exists(stat)) {
-        std::cerr << "ERROR: " << p << " does not exist.\n";
-        std::exit(EXIT_FAILURE);
-    }
-    if (!std::filesystem::is_regular_file(stat)) {
-        std::cerr << "ERROR: " << p
-                  << " exists but is not a regular file.\n";
-        std::exit(EXIT_FAILURE);
-    }
-}
-
-void zerostep() {
-    const std::filesystem::path filepath(plyfilename(0));
-    assert_nonexistence(filepath);
-    std::ofstream plyfile(filepath, std::ios::binary);
-    if (!plyfile) {
-        std::cout << "Could not open ply file "
-                  << filepath << "." << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-    dzc4::CompressedPosition64 start_pos;
-    const char *pos_ptr = char_ptr_to(start_pos);
-    if (!plyfile.write(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
-        std::cout << "Failed to write to ply file "
-                  << filepath << "." << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-}
-
-void printinfo(std::ifstream &infile,
-               const std::string &filename) {
-    if (infile) {
-        std::cout << "Successfully opened input file "
-                  << filename << "." << std::endl;
-        // TODO: seekg() and tellg() are implementation-defined.
-        // Is there a standard C++ way to get the size of a file?
-        infile.seekg(0, infile.end);
-        std::streampos endpos = infile.tellg();
-        infile.seekg(0);
-        std::streampos startpos = infile.tellg();
-        if ((endpos - startpos) % sizeof(dzc4::CompressedPosition64) != 0) {
-            std::cout << "Input file " << filename
-                      << " is malformed." << std::endl;
-            std::exit(EXIT_FAILURE);
-        } else {
-            std::cout << "Found "
-                      << (endpos - startpos) / sizeof(dzc4::CompressedPosition64)
-                      << " positions to expand." << std::endl;
-        }
-    } else {
-        std::cout << "Failed to open input file "
-                  << filename << "." << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-}
+void zerostep() { dzc4::DataFileWriter(0) << dzc4::CompressedPosition64(); }
 
 void writechunk(std::vector<std::uint64_t> &v,
                 unsigned ply, unsigned chunk) {
@@ -102,42 +39,32 @@ void writechunk(std::vector<std::uint64_t> &v,
 }
 
 void chunkstep(unsigned ply) {
-    const std::string filename = plyfilename(ply);
-    std::ifstream plyfile(filename, std::ios::binary);
-    printinfo(plyfile, filename);
+    dzc4::DataFileReader reader(ply);
     dzc4::CompressedPosition64 pos;
-    char *pos_ptr = char_ptr_to(pos);
     std::vector<std::uint64_t> posns;
     unsigned long long int count = 0;
     unsigned chunk = 0;
-    if (ply % 2 == 0) {
-        while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
-            for (unsigned col = 0; col < NUM_COLS; ++col) {
-                if (const dzc4::Position128 newpos = pos.decompress().move<Player::WHITE>(col)) {
+    while (reader >> pos) {
+        for (unsigned col = 0; col < NUM_COLS; ++col) {
+            if (ply % 2 == 0) {
+                if (const dzc4::Position128 newpos =
+                        pos.decompress().move<Player::WHITE>(col)) {
                     if (newpos.eval<Player::BLACK, DEPTH>() == Evaluation::UNKNOWN) {
                         posns.push_back(newpos.compressed_data());
                     }
                 }
-            }
-            if (++count % CHUNK_SIZE == 0) {
-                std::cout << "Expanded " << count << " positions." << std::endl;
-                writechunk(posns, ply + 1, chunk++);
-            }
-        }
-    } else {
-        while (plyfile.read(pos_ptr, sizeof(dzc4::CompressedPosition64))) {
-            for (unsigned col = 0; col < NUM_COLS; ++col) {
-                if (const dzc4::Position128 newpos = pos.decompress().move<Player::BLACK>(col)) {
+            } else {
+                if (const dzc4::Position128 newpos =
+                        pos.decompress().move<Player::BLACK>(col)) {
                     if (newpos.eval<Player::WHITE, DEPTH>() == Evaluation::UNKNOWN) {
                         posns.push_back(newpos.compressed_data());
                     }
                 }
             }
-            if (++count % CHUNK_SIZE == 0) {
-                std::cout << "Expanded " << count
-                          << " positions." << std::endl;
-                writechunk(posns, ply + 1, chunk++);
-            }
+        }
+        if (++count % CHUNK_SIZE == 0) {
+            std::cout << "Expanded " << count << " positions." << std::endl;
+            writechunk(posns, ply + 1, chunk++);
         }
     }
     if (!posns.empty()) {
@@ -150,17 +77,16 @@ void chunkstep(unsigned ply) {
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| //
 // ========================================================================== //
 
-bool readnext(std::vector<std::ifstream> &chunkfiles,
-              std::vector<std::uint64_t> &front,
-              std::vector<std::ifstream>::size_type i) {
-    auto front_ptr = char_ptr_to(front[i]);
-    chunkfiles[i].read(front_ptr, sizeof(std::uint64_t));
-    if (chunkfiles[i].eof()) {
-        chunkfiles.erase(chunkfiles.begin() + i);
-        front.erase(front.begin() + i);
+bool readnext(std::vector<dzc4::DataFileReader> &chunk_readers,
+              std::vector<dzc4::CompressedPosition64> &front_buffer,
+              std::size_t index) {
+    chunk_readers[index] >> front_buffer[index];
+    if (chunk_readers[index].eof()) {
+        chunk_readers.erase(chunk_readers.begin() + index);
+        front_buffer.erase(front_buffer.begin() + index);
         std::cout << "Closed chunk file." << std::endl;
         return false;
-    } else if (chunkfiles[i]) {
+    } else if (chunk_readers[index]) {
         return true;
     } else {
         std::cout << "Error occurred when reading from chunk file."
@@ -169,71 +95,45 @@ bool readnext(std::vector<std::ifstream> &chunkfiles,
     }
 }
 
-void merge(std::vector<std::ifstream> &chunkfiles,
-           std::ofstream &plyfile) {
-    std::vector<std::uint64_t> front(chunkfiles.size(), 0);
-    for (std::vector<std::ifstream>::size_type i = 0;
-         i < chunkfiles.size(); ++i) {
+void merge(std::vector<dzc4::DataFileReader> &chunkfiles,
+           dzc4::DataFileWriter &plyfile) {
+    std::vector<dzc4::CompressedPosition64> front(chunkfiles.size());
+    for (std::size_t i = 0; i < chunkfiles.size(); ++i) {
         if (!readnext(chunkfiles, front, i)) { --i; }
     }
-    std::uint64_t minpos;
-    char *minpos_ptr = char_ptr_to(minpos);
     while (!chunkfiles.empty()) {
-        minpos = *std::min_element(front.begin(), front.end());
-        if (!plyfile.write(minpos_ptr, sizeof(std::uint64_t))) {
-            std::cout << "Failed to write to ply file." << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-        for (std::vector<std::ifstream>::size_type i = 0;
-             i < chunkfiles.size(); ++i) {
+        const dzc4::CompressedPosition64 minpos =
+            *std::min_element(front.begin(), front.end());
+        plyfile << minpos;
+        for (std::size_t i = 0; i < chunkfiles.size(); ++i) {
             if (front[i] == minpos && !readnext(chunkfiles, front, i)) { --i; }
         }
     }
 }
 
+unsigned count_chunks(unsigned ply) {
+    for (unsigned count = 0; true; ++count) {
+        const std::filesystem::path chunk_path = chunkfilename(ply, count);
+        const auto stat = std::filesystem::status(chunk_path);
+        if (!std::filesystem::exists(stat)
+            || !std::filesystem::is_regular_file(stat)) return count;
+    }
+}
+
 void mergestep(unsigned ply) {
-    std::vector<std::ifstream> chunkfiles;
-    unsigned chunk = 0;
-    unsigned long long int total = 0;
-    while (true) {
-        const std::string filename = chunkfilename(ply, chunk++);
-        chunkfiles.emplace_back(filename, std::ios::binary);
-        if (chunkfiles.back()) {
-            chunkfiles.back().seekg(0, chunkfiles.back().end);
-            std::streampos end = chunkfiles.back().tellg();
-            chunkfiles.back().seekg(0);
-            std::streampos begin = chunkfiles.back().tellg();
-            std::streamoff chunksize = end - begin;
-            if (chunksize % sizeof(dzc4::CompressedPosition64) != 0) {
-                std::cout << "Chunk file " << filename
-                          << " is malformed." << std::endl;
-            }
-            total += static_cast<unsigned long long int>(
-                    chunksize / sizeof(dzc4::CompressedPosition64));
-        } else {
-            chunkfiles.pop_back();
-            break;
-        }
+    std::vector<dzc4::DataFileReader> chunkfiles;
+    const unsigned count = count_chunks(ply);
+    dzc4::exit_if(count == 0, "ERROR: Found no chunk files to merge.");
+    // TODO: Track total?
+    for (unsigned chunk = 0; chunk < count; ++chunk) {
+        chunkfiles.emplace_back(ply, chunk);
     }
-    const auto numchunkfiles = chunkfiles.size();
-    if (chunkfiles.empty()) {
-        std::cout << "Found no chunk files to merge." << std::endl;
-        std::exit(EXIT_FAILURE);
-    } else {
-        std::cout << "Successfully opened " << chunkfiles.size()
-                  << " chunk files." << std::endl;
-        std::cout << "Found " << total << " positions to merge." << std::endl;
-    }
-    const std::string filename = plyfilename(ply);
-    std::ofstream plyfile(filename, std::ios::binary);
-    if (!plyfile) {
-        std::cout << "Could not open ply file "
-                  << filename << "." << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-    merge(chunkfiles, plyfile);
-    for (unsigned i = 0; i < numchunkfiles; ++i) {
-        const std::string chunkname = chunkfilename(ply, i);
+    std::cout << "Successfully opened " << count
+              << " chunk files." << std::endl;
+    dzc4:: DataFileWriter writer(ply);
+    merge(chunkfiles, writer);
+    for (unsigned chunk = 0; chunk < count; ++chunk) {
+        const std::string chunkname = chunkfilename(ply, chunk);
         std::remove(chunkname.c_str());
     }
 }
