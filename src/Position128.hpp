@@ -162,10 +162,10 @@ namespace dzc4 {
         friend std::ostream &operator<<(std::ostream &os, Position128 posn) {
             constexpr std::uint64_t bit = 1;
             for (unsigned j = NUM_ROWS; j > 0; --j) {
-                for (unsigned i = 0; i < 8; ++i) {
+                for (unsigned i = 0; i < NUM_COLS; ++i) {
                     const std::uint64_t newbit = bit << (8 * i + j - 1);
-                    os << ((posn.white.data & newbit) ? 'W' :
-                           (posn.black.data & newbit) ? 'B' : 'O');
+                    os << ((posn.white.data & newbit) ? 'X' :
+                           (posn.black.data & newbit) ? 'O' : '.');
                 }
                 os << '\n';
             }

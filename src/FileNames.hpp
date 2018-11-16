@@ -205,6 +205,59 @@ namespace dzc4 {
 
     }; // class DataFileWriter
 
+
+
+    class TableFileReader {
+
+    private: // =============================================== MEMBER VARIABLES
+
+        std::filesystem::path table_path;
+        std::uintmax_t table_size;
+        std::ifstream table_stream;
+
+    public: // ===================================================== CONSTRUCTOR
+
+        explicit TableFileReader(const std::string &path_str) {
+            table_path = path_str;
+            assert_file_exists(table_path);
+            table_size = std::filesystem::file_size(table_path);
+            exit_if(table_size % (sizeof(CompressedPosition64) + 1) != 0,
+                    "ERROR: Table file ", table_path, " is malformed.");
+            table_size /= sizeof(CompressedPosition64) + 1;
+            table_stream.open(table_path, std::ios::binary | std::ios::in);
+            exit_if(table_stream.fail(),
+                    "ERROR: Failed to open table file ", table_path, ".");
+            std::cout << "Successfully opened table file " << table_path
+                      << ". Found " << table_size << " positions." << std::endl;
+        }
+
+        explicit TableFileReader(unsigned ply) :
+                TableFileReader(tabfilename(ply)) {}
+
+    public: // =================================================== STATE TESTING
+
+        operator bool() const { return !table_stream.fail(); }
+
+        bool eof() const { return table_stream.eof(); }
+
+        const std::filesystem::path &path() const { return table_path; }
+
+        std::uintmax_t size() const { return table_size; }
+
+    public: // ======================================= STREAM INSERTION OPERATOR
+
+        TableFileReader &read(CompressedPosition64 &posn, int &score) {
+            char *posn_ptr = char_ptr_to(posn);
+            table_stream.read(posn_ptr, sizeof(CompressedPosition64));
+            signed char char_score;
+            char *score_ptr = char_ptr_to(char_score);
+            table_stream.read(score_ptr, 1);
+            score = static_cast<int>(char_score);
+            return *this;
+        }
+
+    }; // class TableFileReader
+
 } // namespace dzc4
 
 #endif // DZC4_FILENAMES_HPP_INCLUDED
