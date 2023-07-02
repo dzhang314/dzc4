@@ -49,7 +49,7 @@ struct BitBoard64 {
     }
 
 
-    constexpr unsigned height(unsigned col) const {
+    constexpr unsigned height(unsigned col) const noexcept {
         constexpr std::uint64_t mask = 0xFF;
         const std::uint64_t x = data & (mask << (8 * col));
         return 7 - static_cast<unsigned>(std::countl_zero(x) - 1) % 8;
