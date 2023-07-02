@@ -30,11 +30,11 @@ void chunkstep(unsigned ply) {
     while (reader >> posn) {
         for (unsigned col = 0; col < NUM_COLS; ++col) {
             if (const dzc4::Position128 next_posn = ply % 2 == 0
-                    ? posn.decompress().move<Player::WHITE>(col)
-                    : posn.decompress().move<Player::BLACK>(col)) {
+                    ? posn.decompress().move<Player::WHITE, NUM_ROWS>(col)
+                    : posn.decompress().move<Player::BLACK, NUM_ROWS>(col)) {
                 const Evaluation ev = ply % 2 == 0
-                    ? next_posn.eval<Player::BLACK, DEPTH>()
-                    : next_posn.eval<Player::WHITE, DEPTH>();
+                    ? next_posn.evaluate<Player::BLACK, NUM_ROWS, NUM_COLS, DEPTH>()
+                    : next_posn.evaluate<Player::WHITE, NUM_ROWS, NUM_COLS, DEPTH>();
                 if (ev == Evaluation::UNKNOWN) posns.emplace_back(next_posn);
             }
         }
@@ -124,8 +124,8 @@ void endstep() {
         unsigned long long int count = 0;
         while (reader >> posn) {
             const int score = ply % 2 == 0
-                    ? posn.decompress().score<Player::WHITE, DEPTH + 1>()
-                    : posn.decompress().score<Player::BLACK, DEPTH + 1>();
+                    ? posn.decompress().calculate_score<Player::WHITE, NUM_ROWS, NUM_COLS, DEPTH + 1>()
+                    : posn.decompress().calculate_score<Player::BLACK, NUM_ROWS, NUM_COLS, DEPTH + 1>();
             writer.write(posn, score);
             if (++count % CHUNK_SIZE == 0) {
                 std::cout << "Evaluated " << count << " positions ("

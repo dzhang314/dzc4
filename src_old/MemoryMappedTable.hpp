@@ -86,11 +86,11 @@ namespace dzc4 {
 
         template <Player player>
         int find(Position128 posn) {
-            const std::uint64_t comp = posn.compressed_data();
+            const std::uint64_t comp = CompressedPosition64(posn).data;
             off_t start = 0, stop = num_entries - 1;
             while (true) {
                 if (start > stop) {
-                    const int score = posn.score<player, DEPTH + 1>();
+                    const int score = posn.calculate_score<player, NUM_ROWS, NUM_COLS, DEPTH + 1>();
                     if (score == INT_MIN) {
                         std::cerr << "Error: inconclusive search" << std::endl;
                         std::exit(EXIT_FAILURE);
@@ -113,7 +113,7 @@ namespace dzc4 {
             int neg = INT_MIN, pos = 0;
             bool candraw = false;
             for (unsigned col = 0; col < NUM_COLS; ++col) {
-                if (const Position128 newpos = posn.move<player>(col)) {
+                if (const Position128 newpos = posn.move<player, NUM_ROWS>(col)) {
                     const int newres = find<other(player)>(newpos);
                     if (newres == -1)    return +1;
                     else if (newres < 0) neg = std::max(neg, newres);
