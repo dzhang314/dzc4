@@ -54,20 +54,6 @@ inline std::string chunkfilename(unsigned ply, unsigned chunk) {
 
 namespace dzc4 {
 
-    void assert_nonexistence(const std::filesystem::path &p) {
-        exit_if(std::filesystem::exists(p),
-                "ERROR: ", p, " already exists.");
-    }
-
-    void assert_file_exists(const std::filesystem::path &p) {
-        const auto stat = std::filesystem::status(p);
-        exit_if(!std::filesystem::exists(stat),
-                "ERROR: ", p, " does not exist.");
-        exit_if(!std::filesystem::is_regular_file(stat),
-                "ERROR: ", p, " exists but is not a regular file.");
-    }
-
-
 
     class DataFileWriter {
 

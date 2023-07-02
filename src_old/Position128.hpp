@@ -63,9 +63,9 @@ namespace dzc4 {
         // Explicitly disallow declaration of uninitialized Position128s.
         Position128() = delete;
 
-        explicit constexpr Position128(std::uint64_t white,
-                                       std::uint64_t black) :
-            white(white), black(black) {}
+        explicit constexpr Position128(std::uint64_t white_board,
+                                       std::uint64_t black_board) :
+            white(white_board), black(black_board) {}
 
         constexpr BitBoard64 fullboard() const {
             return BitBoard64(white.data | black.data);
