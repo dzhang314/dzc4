@@ -1,8 +1,9 @@
 #ifndef DZC4_POSITION_128_HPP_INCLUDED
 #define DZC4_POSITION_128_HPP_INCLUDED
 
-#include <climits> // for INT_MIN
-#include <cstdint> // for std::uint64_t
+#include <algorithm> // for std::max
+#include <climits>   // for INT_MIN
+#include <cstdint>   // for `uint64_t
 
 #include "BitBoard64.hpp" // for BitBoard64
 
