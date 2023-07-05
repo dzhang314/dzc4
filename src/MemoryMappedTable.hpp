@@ -4,7 +4,6 @@
 #include <algorithm> // for std::max
 #include <climits>   // for INT_MIN
 #include <cstddef>   // for std::size_t
-#include <cstdlib>   // for std::exit, EXIT_FAILURE
 #include <iostream>  // for std::cerr, std::endl
 #include <string>    // for std::string
 
@@ -15,6 +14,7 @@
 
 #include "CompressedPosition64.hpp"
 #include "Position128.hpp"
+#include "Utilities.hpp"
 
 namespace dzc4 {
 
@@ -35,30 +35,30 @@ struct MemoryMappedTable {
     explicit MemoryMappedTable(const char *path) {
         // Use UNIX stat to get size of table file.
         struct stat st;
-        if (stat(path, &st) == -1) {
-            std::cerr << "Error occurred while retrieving size of table file "
-                      << path << "." << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
+        exit_if(
+            stat(path, &st) == -1,
+            "Error occurred while retrieving size of table file ",
+            path,
+            "."
+        );
         // Save file size to member variables.
         file_size = static_cast<std::size_t>(st.st_size);
         num_entries = file_size / ENTRY_SIZE;
         // Use UNIX open to obtain file descriptor for table file.
         fd = open(path, O_RDONLY);
-        if (fd == -1) {
-            std::cerr << "Error occurred while opening table file " << path
-                      << "." << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
+        exit_if(
+            fd == -1, "Error occurred while opening table file ", path, "."
+        );
         // Use UNIX mmap to load table file into memory.
         data = static_cast<char *>(
             mmap(nullptr, file_size, PROT_READ, MAP_SHARED, fd, 0)
         );
-        if (data == MAP_FAILED) {
-            std::cerr << "Error occurred while memory-mapping table file "
-                      << path << "." << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
+        exit_if(
+            data == MAP_FAILED,
+            "Error occurred while memory-mapping table file ",
+            path,
+            "."
+        );
     }
 
 
@@ -107,12 +107,8 @@ struct MemoryMappedTable {
                     position
                         .calculate_score<PLAYER, NUM_ROWS, NUM_COLS, DEPTH + 1>(
                         );
-                if (score == INT_MIN) {
-                    std::cerr << "ERROR: Inconclusive search." << std::endl;
-                    std::exit(EXIT_FAILURE);
-                } else {
-                    return score;
-                }
+                exit_if(score == INT_MIN, "ERROR: Inconclusive search.");
+                return score;
             }
             const std::size_t middle_index =
                 lower_index + (upper_index - lower_index) / 2;
