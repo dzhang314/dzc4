@@ -152,8 +152,8 @@ void backstep(unsigned ply) {
         unsigned long long int count = 0;
         while (reader >> posn) {
             const int score = ply % 2 == 0
-                ? tabfile.eval<Player::BLACK>(posn)
-                : tabfile.eval<Player::WHITE>(posn);
+                ? tabfile.evaluate<Player::BLACK, NUM_ROWS, NUM_COLS, DEPTH>(posn)
+                : tabfile.evaluate<Player::WHITE, NUM_ROWS, NUM_COLS, DEPTH>(posn);
             writer.write(posn, score);
             if (++count % CHUNK_SIZE == 0) {
                 std::cout << "Evaluated " << count << " positions ("
